@@ -1,0 +1,12 @@
+{
+  "name": "cryptoclaw",
+  "version": "1.0.0",
+  "description": "Cryptoclaw — an OpenClaw-powered personal AI assistant",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "dependencies": {
+    "openclaw": "2026.4.14"
+  }
+}

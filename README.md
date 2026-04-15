@@ -1,65 +1,79 @@
 # Cryptoclaw
 
-Cryptoclaw is a project built on top of [OpenClaw](https://github.com/pjasicek/OpenClaw), the open-source multiplatform reimplementation of the classic 1997 platformer game Captain Claw.
+Cryptoclaw is a personal AI assistant built on [OpenClaw](https://github.com/openclaw/openclaw) — a free, open-source AI agent framework that runs on your own machine and responds through the messaging channels you already use (WhatsApp, Telegram, Discord, Slack, and more).
 
 ## Prerequisites
 
-### Linux (Ubuntu/Debian)
-
-```bash
-sudo apt install cmake libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libsdl2-gfx-dev
-```
-
-### Windows
-
-- CMake 3.2+
-- Visual Studio 2017 or later (or another CMake-compatible C++ compiler)
-- The SDL2 libraries bundled with OpenClaw are used automatically on Windows.
+- **Node.js** ≥ 22.14.0 (or use [Docker](#docker))
+- An API key for at least one LLM provider (OpenAI, Anthropic, Gemini, …)
 
 ## Getting Started
 
-Clone the repository with its submodules:
+### 1. Clone the repository
 
 ```bash
-git clone --recurse-submodules https://github.com/becominggiantcollective/Cryptoclaw.git
+git clone https://github.com/becominggiantcollective/Cryptoclaw.git
 cd Cryptoclaw
 ```
 
-If you already cloned without `--recurse-submodules`, initialize the submodules manually:
+### 2. Install dependencies
 
 ```bash
-git submodule update --init --recursive
+npm install
 ```
 
-## Building
+### 3. Configure
+
+Copy the example environment file and fill in your credentials:
 
 ```bash
-mkdir build
-cd build
-cmake ..
-cmake --build .
+cp .env.example .env
 ```
 
-The resulting `openclaw` binary will be placed in the `third_party/openclaw/Build_Release` directory.
+Edit `.env` and set at minimum:
 
-## Running
+| Variable | Description |
+|---|---|
+| `OPENCLAW_GATEWAY_TOKEN` | Auth token for the gateway (`openssl rand -hex 32`) |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | API key for your preferred LLM provider |
 
-OpenClaw requires the original game assets (`CLAW.REZ`) from the Captain Claw (1997) CD or installation. Copy `CLAW.REZ` into `third_party/openclaw/Build_Release`, then create `ASSETS.ZIP` from the contents of the `ASSETS` directory:
+See `.env.example` for the full list of available options.
+
+### 4. Run
+
+Start the guided onboarding wizard (recommended for first-time setup):
 
 ```bash
-cd third_party/openclaw/Build_Release/ASSETS
-zip -r ../ASSETS.ZIP .
-cd ..
+npx openclaw onboard
 ```
 
-Then run:
+Or start the gateway directly:
 
 ```bash
-cd third_party/openclaw/Build_Release
-./openclaw
+npx openclaw gateway
 ```
+
+## Docker
+
+You can also run Cryptoclaw via Docker using the OpenClaw image:
+
+```bash
+# Pull the latest OpenClaw image
+docker pull ghcr.io/openclaw/openclaw:latest
+
+# Run the gateway (adjust paths as needed)
+docker run -d \
+  --env-file .env \
+  -v "$HOME/.openclaw:/home/node/.openclaw" \
+  -p 18789:18789 \
+  ghcr.io/openclaw/openclaw:latest
+```
+
+## Documentation
+
+Full OpenClaw documentation: <https://docs.openclaw.ai>
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).  
-OpenClaw is licensed separately — see [`third_party/openclaw/LICENSE.txt`](third_party/openclaw/LICENSE.txt).
+This project is licensed under the [MIT License](LICENSE).
+OpenClaw is also MIT-licensed — see the [OpenClaw repository](https://github.com/openclaw/openclaw/blob/main/LICENSE).
