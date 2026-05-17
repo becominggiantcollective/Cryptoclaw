@@ -31,7 +31,9 @@ const schema = z.object({
   LLM_API_KEY: z.string().min(10),
 
   AUTONOMY_LOOP_MS: z.coerce.number().int().positive().default(120000),
-  OPENCLAW_EXECUTION_MODE: z.enum(["gateway", "local"]).default("gateway")
+  OPENCLAW_EXECUTION_MODE: z.enum(["gateway", "local"]).default("gateway"),
+  OPENCLAW_AGENT_ARGS: z.string().default("--thinking high"),
+  OPENCLAW_AGENT_TIMEOUT_MS: z.coerce.number().int().positive().default(90000)
 });
 
 export type AppConfig = z.infer<typeof schema>;

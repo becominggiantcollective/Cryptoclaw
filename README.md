@@ -19,6 +19,7 @@ src/
   8004-integration.ts    # ERC-8004 registry interactions
   x402-handler.ts        # x402 middleware wiring
   wallet.ts              # Secure signer/provider creation
+  openclaw.ts            # OpenClaw CLI runtime bridge for planning/tool execution
   llm.ts                 # LLM prompts + provider client
   retry.ts               # Retry/backoff utility
   config.ts              # Env validation and config loading

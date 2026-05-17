@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import { ERC8004Integration } from "./8004-integration.js";
 import { logger } from "./logger.js";
 import { AGENT_SYSTEM_PROMPT, AUTONOMY_PROMPT, runLLM } from "./llm.js";
+import { runOpenClawAgent } from "./openclaw.js";
 import type { PaidTaskRequest, PaidTaskResult } from "./types.js";
 
 export class AutonomousAgent {
@@ -69,11 +70,14 @@ export class AutonomousAgent {
   }
 
   async fulfillPaidTask(input: PaidTaskRequest): Promise<PaidTaskResult> {
+    const walletAddress = await this.wallet.getAddress();
     const userPrompt = [
       `Requester: ${input.requester}`,
       `Topic: ${input.topic}`,
       `Depth: ${input.depth ?? "standard"}`,
       `Chain focus: ${input.chain ?? "base"}`,
+      `Wallet: ${walletAddress}`,
+      `Chain ID: ${config.CHAIN_ID}`,
       "Output format:",
       "1) Executive summary",
       "2) Key on-chain findings",
@@ -82,15 +86,24 @@ export class AutonomousAgent {
       "5) Confidence score from 0 to 1"
     ].join("\n");
 
-    const report = await runLLM([
-      { role: "system", content: AGENT_SYSTEM_PROMPT },
-      { role: "user", content: userPrompt }
-    ]);
+    const report =
+      config.OPENCLAW_EXECUTION_MODE === "gateway"
+        ? await runOpenClawAgent(
+            [
+              AGENT_SYSTEM_PROMPT,
+              "Use planning, tools, and execution to generate a paid report for this request.",
+              userPrompt
+            ].join("\n\n")
+          )
+        : await runLLM([
+            { role: "system", content: AGENT_SYSTEM_PROMPT },
+            { role: "user", content: userPrompt }
+          ]);
 
     const confidence = this.extractConfidence(report);
 
     await this.registry.postReputationUpdate({
-      subject: await this.wallet.getAddress(),
+      subject: walletAddress,
       scoreDelta: BigInt(Math.round(confidence * 100)),
       reason: "Paid task delivered"
     });
@@ -105,10 +118,26 @@ export class AutonomousAgent {
 
   private async nextAutonomousTask(): Promise<string> {
     if (config.OPENCLAW_EXECUTION_MODE === "gateway") {
-      return runLLM([
-        { role: "system", content: AGENT_SYSTEM_PROMPT },
-        { role: "user", content: AUTONOMY_PROMPT }
-      ]);
+      const walletAddress = await this.wallet.getAddress();
+      const planning = await runOpenClawAgent(
+        [
+          AGENT_SYSTEM_PROMPT,
+          AUTONOMY_PROMPT,
+          `Wallet: ${walletAddress}`,
+          `Chain ID: ${config.CHAIN_ID}`,
+          "Produce a concise plan first."
+        ].join("\n\n")
+      );
+      const execution = await runOpenClawAgent(
+        [
+          AGENT_SYSTEM_PROMPT,
+          "Execute the plan using tools as needed and return a concise result JSON.",
+          `Wallet: ${walletAddress}`,
+          `Chain ID: ${config.CHAIN_ID}`,
+          `Plan:\n${planning}`
+        ].join("\n\n")
+      );
+      return JSON.stringify({ planning, execution });
     }
 
     return JSON.stringify({
