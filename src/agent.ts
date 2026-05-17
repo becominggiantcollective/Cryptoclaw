@@ -18,7 +18,7 @@ interface OpenClawAutonomyOutput {
   };
 }
 
-const OPENCLAW_AUTONOMY_OUTPUT_FORMAT: OpenClawAutonomyOutput = {
+const OPENCLAW_AUTONOMY_OUTPUT_EXAMPLE: OpenClawAutonomyOutput = {
   planning: { task: "string", reason: "string", priority: 1 },
   execution: { actions: ["string"], result: "string" }
 };
@@ -103,19 +103,17 @@ export class AutonomousAgent {
       "5) Confidence score from 0 to 1"
     ].join("\n");
 
-    const report =
-      config.OPENCLAW_EXECUTION_MODE === "gateway"
-        ? await runOpenClawAgent(
-            [
-              AGENT_SYSTEM_PROMPT,
-              "Use planning, tools, and execution to generate a paid report for this request.",
-              userPrompt
-            ].join("\n\n")
-          )
-        : await runLLM([
-            { role: "system", content: AGENT_SYSTEM_PROMPT },
-            { role: "user", content: userPrompt }
-          ]);
+    const report = await this.runInConfiguredMode(
+      [
+        AGENT_SYSTEM_PROMPT,
+        "Use planning, tools, and execution to generate a paid report for this request.",
+        userPrompt
+      ].join("\n\n"),
+      [
+        { role: "system", content: AGENT_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt }
+      ]
+    );
 
     const confidence = this.extractConfidence(report);
 
@@ -144,7 +142,7 @@ export class AutonomousAgent {
           `Chain ID: ${config.CHAIN_ID}`,
           "Use available tools when helpful.",
           "Respond in strict JSON with this shape:",
-          JSON.stringify(OPENCLAW_AUTONOMY_OUTPUT_FORMAT)
+          JSON.stringify(OPENCLAW_AUTONOMY_OUTPUT_EXAMPLE)
         ].join("\n\n")
       );
     }
@@ -168,5 +166,12 @@ export class AutonomousAgent {
     }
 
     return Math.min(1, Math.max(0, value));
+  }
+
+  private async runInConfiguredMode(openClawPrompt: string, llmMessages: Array<{ role: "system" | "user"; content: string }>): Promise<string> {
+    if (config.OPENCLAW_EXECUTION_MODE === "gateway") {
+      return runOpenClawAgent(openClawPrompt);
+    }
+    return runLLM(llmMessages);
   }
 }

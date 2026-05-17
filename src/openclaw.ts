@@ -10,7 +10,8 @@ const require = createRequire(import.meta.url);
 
 /**
  * Parses extra OpenClaw CLI args from a space-delimited config string.
- * Quoted values with spaces are not supported; pass only whitespace-safe args.
+ * Quoted values with spaces are not supported to avoid shell-like parsing ambiguity.
+ * Keep args whitespace-safe (e.g. "--thinking high"), and place larger text values in prompts.
  */
 function parseExtraArgs(raw: string): string[] {
   return raw
