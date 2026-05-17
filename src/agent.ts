@@ -19,7 +19,7 @@ export class AutonomousAgent {
     try {
       await this.registry.postReputationUpdate({
         subject: address,
-        scoreDelta: BigInt(1),
+        scoreDelta: BigInt(config.AGENT_INITIAL_REPUTATION_DELTA),
         reason: `Identity registered on chain ${registration.chainId}`
       });
     } catch (error) {

@@ -20,6 +20,7 @@ const schema = z.object({
   ERC8004_VALIDATION_SUBMIT_FN: z.string().default("submitValidation(address,string,bool)"),
 
   AGENT_METADATA_URI: z.string().default("ipfs://cryptoclaw/agent-metadata.json"),
+  AGENT_INITIAL_REPUTATION_DELTA: z.coerce.number().int().default(1),
 
   X402_FACILITATOR_URL: z.url().default("https://facilitator.x402.org"),
   X402_NETWORK: z.string().default("eip155:84532"),
