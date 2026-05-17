@@ -6,3 +6,6 @@ node_modules/
 
 # OpenClaw state directory (created at runtime)
 .openclaw/
+
+# Build output
+dist/
