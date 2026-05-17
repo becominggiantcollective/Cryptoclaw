@@ -1,4 +1,4 @@
-import { Interface, Wallet, type Log } from "ethers";
+import { Interface, Wallet, type Log, type TransactionReceipt } from "ethers";
 import { config } from "./config.js";
 import { logger } from "./logger.js";
 import { withRetry } from "./retry.js";
@@ -15,31 +15,45 @@ function functionName(signature: string): string {
 export class ERC8004Integration {
   constructor(private readonly wallet: Wallet) {}
 
-  async registerIdentity(agentAddress: string, metadataUri: string): Promise<string> {
-    return this.sendRegistryTx(
+  async registerIdentity(
+    agentAddress: string,
+    metadataUri: string
+  ): Promise<{ txHash: string; tokenId: string | null; chainId: number }> {
+    const chainId = await this.assertChainConnection();
+    await this.assertContractDeployed(config.ERC8004_IDENTITY_REGISTRY_ADDRESS, "identity-registry");
+    const { txHash, receipt } = await this.sendRegistryTx(
       "erc8004-register-identity",
       config.ERC8004_IDENTITY_REGISTRY_ADDRESS,
       config.ERC8004_IDENTITY_REGISTER_FN,
       [agentAddress, metadataUri]
     );
+    return {
+      txHash,
+      tokenId: this.decodeAgentRegisteredFromReceipt(receipt),
+      chainId
+    };
   }
 
   async postReputationUpdate(update: ReputationUpdate): Promise<string> {
-    return this.sendRegistryTx(
+    await this.assertContractDeployed(config.ERC8004_REPUTATION_REGISTRY_ADDRESS, "reputation-registry");
+    const { txHash } = await this.sendRegistryTx(
       "erc8004-reputation-update",
       config.ERC8004_REPUTATION_REGISTRY_ADDRESS,
       config.ERC8004_REPUTATION_UPDATE_FN,
       [update.subject, update.scoreDelta, update.reason]
     );
+    return txHash;
   }
 
   async submitValidation(record: ValidationRecord): Promise<string> {
-    return this.sendRegistryTx(
+    await this.assertContractDeployed(config.ERC8004_VALIDATION_REGISTRY_ADDRESS, "validation-registry");
+    const { txHash } = await this.sendRegistryTx(
       "erc8004-validation-submit",
       config.ERC8004_VALIDATION_REGISTRY_ADDRESS,
       config.ERC8004_VALIDATION_SUBMIT_FN,
       [record.subject, record.payloadUri, record.passed]
     );
+    return txHash;
   }
 
   async discoverRecentAgents(fromBlock = -3000): Promise<Array<{ agent: string; metadataUri: string; id: string }>> {
@@ -72,7 +86,7 @@ export class ERC8004Integration {
     contractAddress: string,
     fnSignature: string,
     args: unknown[]
-  ): Promise<string> {
+  ): Promise<{ txHash: string; receipt: TransactionReceipt }> {
     return withRetry(operationName, async () => {
       const iface = new Interface([`function ${fnSignature}`]);
       const method = functionName(fnSignature);
@@ -82,9 +96,46 @@ export class ERC8004Integration {
         data
       });
       const receipt = await tx.wait();
-      logger.info({ txHash: receipt?.hash ?? tx.hash, operationName }, "erc8004 tx submitted");
-      return receipt?.hash ?? tx.hash;
+      if (!receipt) {
+        throw new Error(`No transaction receipt for operation '${operationName}'`);
+      }
+      logger.info({ txHash: receipt.hash, operationName }, "erc8004 tx submitted");
+      return { txHash: receipt.hash, receipt };
     });
+  }
+
+  private async assertChainConnection(): Promise<number> {
+    const provider = this.wallet.provider;
+    if (!provider) {
+      throw new Error("Wallet provider is not configured");
+    }
+    const network = await provider.getNetwork();
+    const chainId = Number(network.chainId);
+    if (chainId !== config.CHAIN_ID) {
+      throw new Error(`Connected chain id ${chainId} does not match configured CHAIN_ID ${config.CHAIN_ID}`);
+    }
+    return chainId;
+  }
+
+  private async assertContractDeployed(contractAddress: string, label: string): Promise<void> {
+    const provider = this.wallet.provider;
+    if (!provider) {
+      throw new Error("Wallet provider is not configured");
+    }
+    const code = await provider.getCode(contractAddress);
+    if (code === "0x") {
+      throw new Error(`No contract deployed for ${label} at ${contractAddress}`);
+    }
+  }
+
+  private decodeAgentRegisteredFromReceipt(receipt: TransactionReceipt): string | null {
+    for (const log of receipt.logs) {
+      const decoded = this.decodeAgentRegistered(log);
+      if (decoded) {
+        return decoded.id;
+      }
+    }
+    return null;
   }
 
   private decodeAgentRegistered(log: Log): { agent: string; metadataUri: string; id: string } | null {

@@ -15,9 +15,22 @@ export class AutonomousAgent {
 
   async bootstrap(): Promise<void> {
     const address = await this.wallet.getAddress();
-    await this.registry.registerIdentity(address, config.AGENT_METADATA_URI);
+    const registration = await this.registry.registerIdentity(address, config.AGENT_METADATA_URI);
+    await this.registry.postReputationUpdate({
+      subject: address,
+      scoreDelta: BigInt(1),
+      reason: `Identity registered on chain ${registration.chainId}`
+    });
 
-    logger.info({ address }, "agent bootstrapped and identity registration sent");
+    logger.info(
+      {
+        address,
+        chainId: registration.chainId,
+        registrationTxHash: registration.txHash,
+        tokenId: registration.tokenId
+      },
+      "agent bootstrapped with erc8004 identity registration and initial reputation"
+    );
   }
 
   startAutonomyLoop(): void {
