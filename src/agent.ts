@@ -6,6 +6,11 @@ import { AGENT_SYSTEM_PROMPT, AUTONOMY_PROMPT, runLLM } from "./llm.js";
 import { runOpenClawAgent } from "./openclaw.js";
 import type { PaidTaskRequest, PaidTaskResult } from "./types.js";
 
+const OPENCLAW_AUTONOMY_OUTPUT_SCHEMA = {
+  planning: { task: "...", reason: "...", priority: "1-5" },
+  execution: { actions: ["..."], result: "..." }
+} as const;
+
 export class AutonomousAgent {
   private loopHandle: NodeJS.Timeout | null = null;
 
@@ -127,7 +132,7 @@ export class AutonomousAgent {
           `Chain ID: ${config.CHAIN_ID}`,
           "Use available tools when helpful.",
           "Respond in strict JSON with this shape:",
-          '{"planning":{"task":"...","reason":"...","priority":1-5},"execution":{"actions":["..."],"result":"..."}}'
+          JSON.stringify(OPENCLAW_AUTONOMY_OUTPUT_SCHEMA)
         ].join("\n\n")
       );
     }

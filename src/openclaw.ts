@@ -1,11 +1,12 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { config } from "./config.js";
 import { withRetry } from "./retry.js";
 
 const execFileAsync = promisify(execFile);
 const OPENCLAW_MESSAGE_MAX_CHARS = 12000;
+const require = createRequire(import.meta.url);
 
 function parseExtraArgs(raw: string): string[] {
   return raw
@@ -16,7 +17,7 @@ function parseExtraArgs(raw: string): string[] {
 }
 
 function openclawEntrypoint(): string {
-  return fileURLToPath(new URL("../node_modules/openclaw/openclaw.mjs", import.meta.url));
+  return require.resolve("openclaw/openclaw.mjs");
 }
 
 function sanitizeMessage(message: string): string {
