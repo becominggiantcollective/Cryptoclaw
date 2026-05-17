@@ -41,7 +41,7 @@ export class AutonomousAgent {
         registrationTxHash: registration.txHash,
         tokenId: registration.tokenId
       },
-      "agent bootstrapped with erc8004 identity registration and initial reputation"
+      "agent bootstrapped with ERC-8004 identity registration and initial reputation"
     );
   }
 

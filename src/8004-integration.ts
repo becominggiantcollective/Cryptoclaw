@@ -99,7 +99,7 @@ export class ERC8004Integration {
       if (!receipt) {
         throw new Error(`No transaction receipt for operation '${operationName}'`);
       }
-      logger.info({ txHash: receipt.hash, operationName }, "erc8004 tx submitted");
+      logger.info({ txHash: receipt.hash, operationName }, "ERC-8004 tx submitted");
       return { txHash: receipt.hash, receipt };
     });
   }
