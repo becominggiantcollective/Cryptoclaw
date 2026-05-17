@@ -119,25 +119,17 @@ export class AutonomousAgent {
   private async nextAutonomousTask(): Promise<string> {
     if (config.OPENCLAW_EXECUTION_MODE === "gateway") {
       const walletAddress = await this.wallet.getAddress();
-      const planning = await runOpenClawAgent(
+      return runOpenClawAgent(
         [
           AGENT_SYSTEM_PROMPT,
           AUTONOMY_PROMPT,
           `Wallet: ${walletAddress}`,
           `Chain ID: ${config.CHAIN_ID}`,
-          "Produce a concise plan first."
+          "Use available tools when helpful.",
+          "Respond in strict JSON with this shape:",
+          '{"planning":{"task":"...","reason":"...","priority":1-5},"execution":{"actions":["..."],"result":"..."}}'
         ].join("\n\n")
       );
-      const execution = await runOpenClawAgent(
-        [
-          AGENT_SYSTEM_PROMPT,
-          "Execute the plan using tools as needed and return a concise result JSON.",
-          `Wallet: ${walletAddress}`,
-          `Chain ID: ${config.CHAIN_ID}`,
-          `Plan:\n${planning}`
-        ].join("\n\n")
-      );
-      return JSON.stringify({ planning, execution });
     }
 
     return JSON.stringify({

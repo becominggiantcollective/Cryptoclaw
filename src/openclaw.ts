@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import { withRetry } from "./retry.js";
 
 const execFileAsync = promisify(execFile);
+const OPENCLAW_MESSAGE_MAX_CHARS = 12000;
 
 function parseExtraArgs(raw: string): string[] {
   return raw
@@ -18,11 +19,16 @@ function openclawEntrypoint(): string {
   return fileURLToPath(new URL("../node_modules/openclaw/openclaw.mjs", import.meta.url));
 }
 
+function sanitizeMessage(message: string): string {
+  return message.replaceAll("\u0000", "").slice(0, OPENCLAW_MESSAGE_MAX_CHARS);
+}
+
 export async function runOpenClawAgent(message: string): Promise<string> {
   return withRetry("openclaw-agent-run", async () => {
+    const safeMessage = sanitizeMessage(message);
     const { stdout, stderr } = await execFileAsync(
       process.execPath,
-      [openclawEntrypoint(), "agent", "--message", message, ...parseExtraArgs(config.OPENCLAW_AGENT_ARGS)],
+      [openclawEntrypoint(), "agent", "--message", safeMessage, ...parseExtraArgs(config.OPENCLAW_AGENT_ARGS)],
       {
         timeout: config.OPENCLAW_AGENT_TIMEOUT_MS,
         maxBuffer: 1024 * 1024
