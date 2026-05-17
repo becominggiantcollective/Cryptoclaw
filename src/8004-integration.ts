@@ -135,6 +135,7 @@ export class ERC8004Integration {
         return decoded.id;
       }
     }
+    logger.warn({ txHash: receipt.hash }, "no AgentRegistered event found in identity registration receipt");
     return null;
   }
 

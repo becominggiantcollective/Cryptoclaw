@@ -16,11 +16,23 @@ export class AutonomousAgent {
   async bootstrap(): Promise<void> {
     const address = await this.wallet.getAddress();
     const registration = await this.registry.registerIdentity(address, config.AGENT_METADATA_URI);
-    await this.registry.postReputationUpdate({
-      subject: address,
-      scoreDelta: BigInt(1),
-      reason: `Identity registered on chain ${registration.chainId}`
-    });
+    try {
+      await this.registry.postReputationUpdate({
+        subject: address,
+        scoreDelta: BigInt(1),
+        reason: `Identity registered on chain ${registration.chainId}`
+      });
+    } catch (error) {
+      logger.warn(
+        {
+          err: error,
+          address,
+          chainId: registration.chainId,
+          registrationTxHash: registration.txHash
+        },
+        "identity was registered but initial reputation update failed"
+      );
+    }
 
     logger.info(
       {
