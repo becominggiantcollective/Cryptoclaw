@@ -8,6 +8,10 @@ const execFileAsync = promisify(execFile);
 const OPENCLAW_MESSAGE_MAX_CHARS = 12000;
 const require = createRequire(import.meta.url);
 
+/**
+ * Parses extra OpenClaw CLI args from a space-delimited config string.
+ * Quoted values with spaces are not supported; pass only whitespace-safe args.
+ */
 function parseExtraArgs(raw: string): string[] {
   return raw
     .trim()
@@ -20,6 +24,9 @@ function openclawEntrypoint(): string {
   return require.resolve("openclaw/openclaw.mjs");
 }
 
+/**
+ * Removes null bytes and caps payload size to keep CLI transport safe and bounded.
+ */
 function sanitizeMessage(message: string): string {
   return message.replaceAll("\u0000", "").slice(0, OPENCLAW_MESSAGE_MAX_CHARS);
 }
@@ -43,7 +50,7 @@ export async function runOpenClawAgent(message: string): Promise<string> {
 
     const errOutput = stderr.trim();
     if (errOutput.length > 0) {
-      throw new Error(`OpenClaw agent returned empty stdout: ${errOutput}`);
+      throw new Error(`OpenClaw agent execution failed with no output. Check stderr: ${errOutput}`);
     }
 
     throw new Error("OpenClaw agent returned no output");
